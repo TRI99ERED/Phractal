@@ -26,12 +26,15 @@ public:
     void renderNextBlock(juce::AudioBuffer< float >& outputBuffer, int startSample, int numSamples) override;
 
     void update(const float attack, const float decay, const float sustain, const float release);
-    OscData& getOscillator() { return osc; }
+    OscData& getOscillator1() { return osc1; }
+    OscData& getOscillator2() { return osc2; }
 private:
     ADSRData adsr;
-    juce::AudioBuffer<float> synthBuffer;
+    juce::AudioBuffer<float> leftSynthBuffer;
+    juce::AudioBuffer<float> rightSynthBuffer;
 
-    OscData osc;
+    OscData osc1;
+    OscData osc2;
     juce::dsp::Gain<float> gain;
     bool isPrepared{ false };
 };

@@ -155,7 +155,8 @@ void PhractalAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
             auto& oscWaveChoice = *apvts.getRawParameterValue("OSC1WAVETYPE");
 
             voice->update(attack.load(), decay.load(), sustain.load(), release.load());
-            voice->getOscillator().setWaveType(oscWaveChoice);
+            voice->getOscillator1().setWaveType(oscWaveChoice);
+            voice->getOscillator2().setWaveType(0);                                                           // HARDCODED WAVE TYPE CHOICE
         }
     }
 

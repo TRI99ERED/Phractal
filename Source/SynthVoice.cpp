@@ -15,7 +15,8 @@ bool SynthVoice::canPlaySound(juce::SynthesiserSound* sound) {
 }
 
 void SynthVoice::startNote(int midiNoteNumber, float velocity, juce::SynthesiserSound* sound, int currentPitchWheelPosition) {
-    osc.setWaveFrequency(midiNoteNumber);
+    osc1.setWaveFrequency(midiNoteNumber);
+    osc2.setWaveFrequency(midiNoteNumber);
     adsr.noteOn();
 }
 
@@ -43,7 +44,8 @@ void SynthVoice::prepareToPlay(double sampleRate, int samplesPerBlock, int outpu
     spec.sampleRate = sampleRate;
     spec.numChannels = outputChannels;
 
-    osc.prepareToPlay(spec);
+    osc1.prepareToPlay(spec);
+    osc2.prepareToPlay(spec);
     gain.prepare(spec);
 
     gain.setGainLinear(0.3f);
@@ -62,22 +64,32 @@ void SynthVoice::renderNextBlock(juce::AudioBuffer< float >& outputBuffer, int s
         return;
     }
 
-    synthBuffer.setSize(outputBuffer.getNumChannels(), numSamples, false, false, false);
-    synthBuffer.clear();
+    leftSynthBuffer.setSize(outputBuffer.getNumChannels(), numSamples, false, false, false);
+    leftSynthBuffer.clear();
 
-    juce::dsp::AudioBlock<float> audioBlock { synthBuffer };
+    juce::dsp::AudioBlock<float> leftAudioBlock { leftSynthBuffer };
 
-    osc.getNextAudioBlock(audioBlock);
-    gain.process(juce::dsp::ProcessContextReplacing<float>(audioBlock));
+    osc1.getNextAudioBlock(leftAudioBlock);
+    gain.process(juce::dsp::ProcessContextReplacing<float>(leftAudioBlock));
 
-    adsr.applyEnvelopeToBuffer(synthBuffer, 0, synthBuffer.getNumSamples());
+    adsr.applyEnvelopeToBuffer(leftSynthBuffer, 0, leftSynthBuffer.getNumSamples());
 
-    for (int channel = 0; channel < outputBuffer.getNumChannels(); ++channel) {
-        outputBuffer.addFrom(channel, startSample, synthBuffer, channel, 0, numSamples);
+    outputBuffer.addFrom(0, startSample, leftSynthBuffer, 0, 0, numSamples);
 
-        if (!adsr.isActive()) {
-            clearCurrentNote();
-        }
+    rightSynthBuffer.setSize(outputBuffer.getNumChannels(), numSamples, false, false, false);
+    rightSynthBuffer.clear();
+
+    juce::dsp::AudioBlock<float> rightAudioBlock{ rightSynthBuffer };
+
+    osc2.getNextAudioBlock(rightAudioBlock);
+    gain.process(juce::dsp::ProcessContextReplacing<float>(rightAudioBlock));
+
+    adsr.applyEnvelopeToBuffer(rightSynthBuffer, 0, rightSynthBuffer.getNumSamples());
+    
+    outputBuffer.addFrom(1, startSample, rightSynthBuffer, 1, 0, numSamples);
+
+    if (!adsr.isActive()) {
+        clearCurrentNote();
     }
 }
 
