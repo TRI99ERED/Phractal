@@ -25,10 +25,6 @@
         <FILE id="fVu7Ew" name="ADSRComponent.cpp" compile="1" resource="0"
               file="Source/UI/ADSRComponent.cpp"/>
         <FILE id="qqY1Cj" name="ADSRComponent.h" compile="0" resource="0" file="Source/UI/ADSRComponent.h"/>
-        <FILE id="HJzbvo" name="FractalComponent.cpp" compile="1" resource="0"
-              file="Source/UI/FractalComponent.cpp"/>
-        <FILE id="ZfyDJH" name="FractalComponent.h" compile="0" resource="0"
-              file="Source/UI/FractalComponent.h"/>
         <FILE id="crkwIV" name="OscComponent.cpp" compile="1" resource="0"
               file="Source/UI/OscComponent.cpp"/>
         <FILE id="sJRlMh" name="OscComponent.h" compile="0" resource="0" file="Source/UI/OscComponent.h"/>
@@ -50,7 +46,6 @@
     <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
-    <MODULE id="juce_opengl" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
   </MODULES>
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>
   <EXPORTFORMATS>
@@ -73,7 +68,6 @@
         <MODULEPATH id="juce_graphics" path="../../JUCE/modules"/>
         <MODULEPATH id="juce_gui_basics" path="../../JUCE/modules"/>
         <MODULEPATH id="juce_gui_extra" path="../../JUCE/modules"/>
-        <MODULEPATH id="juce_opengl" path="../../JUCE/modules"/>
       </MODULEPATHS>
     </VS2022>
   </EXPORTFORMATS>

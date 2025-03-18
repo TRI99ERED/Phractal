@@ -12,7 +12,6 @@
 #include "PluginProcessor.h"
 #include "UI/ADSRComponent.h"
 #include "UI/OscComponent.h"
-#include "UI/FractalComponent.h"
 
 //==============================================================================
 /**
@@ -32,7 +31,6 @@ private:
     // access the processor object that created it.
     PhractalAudioProcessor& audioProcessor;
     
-    FractalComponent fractal;
     OscComponent osc;
     ADSRComponent adsr;
 
