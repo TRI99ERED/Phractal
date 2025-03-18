@@ -11,8 +11,63 @@
 #include <JuceHeader.h>
 #include "FractalRendererComponent.h"
 
+void mandelbrot(float& x, float& y, float cx, float cy) {
+    float nx = x * x - y * y + cx;
+    float ny = 2.0 * x * y + cy;
+    x = nx;
+    y = ny;
+}
+void burning_ship(float& x, float& y, float cx, float cy) {
+    float nx = x * x - y * y + cx;
+    float ny = 2.0 * std::abs(x * y) + cy;
+    x = nx;
+    y = ny;
+}
+void feather(float& x, float& y, float cx, float cy) {
+    std::complex<float> z(x, y);
+    std::complex<float> z2(x * x, y * y);
+    std::complex<float> c(cx, cy);
+    std::complex<float> one(1.0, 0.0);
+    z = z * z * z / (one + z2) + c;
+    x = z.real();
+    y = z.imag();
+}
+void sfx(float& x, float& y, float cx, float cy) {
+    std::complex<float> z(x, y);
+    std::complex<float> c2(cx * cx, cy * cy);
+    z = z * (x * x + y * y) - (z * c2);
+    x = z.real();
+    y = z.imag();
+}
+void henon(float& x, float& y, float cx, float cy) {
+    float nx = 1.0 - cx * x * x + y;
+    float ny = cy * x;
+    x = nx;
+    y = ny;
+}
+void duffing(float& x, float& y, float cx, float cy) {
+    float nx = y;
+    float ny = -cy * x + cx * y - y * y * y;
+    x = nx;
+    y = ny;
+}
+void ikeda(float& x, float& y, float cx, float cy) {
+    float t = 0.4 - 6.0 / (1.0 + x * x + y * y);
+    float st = std::sin(t);
+    float ct = std::cos(t);
+    float nx = 1.0 + cx * (x * ct - y * st);
+    float ny = cy * (x * st + y * ct);
+    x = nx;
+    y = ny;
+}
+void chirikov(float& x, float& y, float cx, float cy) {
+    y += cy * std::sin(x);
+    x += cx * y;
+}
+
 //==============================================================================
-FractalRendererComponent::FractalRendererComponent()
+FractalRendererComponent::FractalRendererComponent(const PhractalAudioProcessor& pap)
+    : audioProcessor(pap)
 {
     // Indicates that no part of this Component is transparent.
     setOpaque(true);
@@ -25,6 +80,8 @@ FractalRendererComponent::FractalRendererComponent()
 
     // Finally - we attach the context to this Component.
     openGLContext.attachTo(*this);
+
+    setWantsKeyboardFocus(true);
 }
 
 FractalRendererComponent::~FractalRendererComponent()
@@ -117,7 +174,7 @@ void FractalRendererComponent::newOpenGLContextCreated()
     fragmentShader =
         R"(
             #version 400 compatibility
-            #extension GL_ARB_gpu_shader_fp64 : enable
+            //#extension GL_ARB_gpu_shader_fp64 : enable
             #pragma optionNV(fastmath off)
             #pragma optionNV(fastprecision off)
 
@@ -299,10 +356,10 @@ void FractalRendererComponent::newOpenGLContextCreated()
     }
 
     juce::OpenGLShaderProgram::Uniform uResolution(*shaderProgram, "iResolution");
-    uResolution.set(1280.f, 500.f);
+    uResolution.set(getLocalBounds().getWidth(), getLocalBounds().getHeight());
 
     juce::OpenGLShaderProgram::Uniform uCam(*shaderProgram, "iCam");
-    uCam.set(0.f, 0.f);
+    uCam.set(cam_x, cam_y);
 
     juce::OpenGLShaderProgram::Uniform uJulia(*shaderProgram, "iJulia");
     uJulia.set(0.f, 0.f);
@@ -331,29 +388,46 @@ void FractalRendererComponent::renderOpenGL()
     // Tell the renderer to use this shader program
     shaderProgram->use();
 
-    juce::OpenGLShaderProgram::Uniform uResolution(*shaderProgram, "iResolution");
-    uResolution.set(1280.f, 500.f);
+    float fpx, fpy, delta_cam_x, delta_cam_y;
+    ScreenToPt(cam_x_fp, cam_y_fp, fpx, fpy);
+    cam_zoom = cam_zoom * 0.8 + cam_zoom_dest * 0.2;
+    ScreenToPt(cam_x_fp, cam_y_fp, delta_cam_x, delta_cam_y);
+    cam_x_dest += delta_cam_x - fpx;
+    cam_y_dest += delta_cam_y - fpy;
+    cam_x += delta_cam_x - fpx;
+    cam_y += delta_cam_y - fpy;
+    cam_x = cam_x * 0.8 + cam_x_dest * 0.2;
+    cam_y = cam_y * 0.8 + cam_y_dest * 0.2;
+
+    const bool hasJulia = (jx < 1e8);
+    const bool drawMset = (juliaDrag || !hasJulia);
+    const bool drawJset = (juliaDrag || hasJulia);
+    const int flags = (drawMset ? 0x01 : 0) | (drawJset ? 0x02 : 0) | (use_color ? 0x04 : 0);
+
+    //juce::OpenGLShaderProgram::Uniform uResolution(*shaderProgram, "iResolution");
+    //uResolution.set(1280.f, 500.f);
 
     juce::OpenGLShaderProgram::Uniform uCam(*shaderProgram, "iCam");
-    uCam.set(0.f, 0.f);
+    uCam.set(cam_x, cam_y);
 
     juce::OpenGLShaderProgram::Uniform uJulia(*shaderProgram, "iJulia");
     uJulia.set(0.f, 0.f);
 
     juce::OpenGLShaderProgram::Uniform uZoom(*shaderProgram, "iZoom");
-    uZoom.set(100.f);
+    uZoom.set(cam_zoom);
 
+    SetFractal(audioProcessor.getWaveType());
     juce::OpenGLShaderProgram::Uniform uType(*shaderProgram, "iType");
-    uType.set(0);
+    uType.set(audioProcessor.getWaveType());
 
-    juce::OpenGLShaderProgram::Uniform uIters(*shaderProgram, "iIters");
-    uIters.set(1200);
+    //juce::OpenGLShaderProgram::Uniform uIters(*shaderProgram, "iIters");
+    //uIters.set(1200);
 
     juce::OpenGLShaderProgram::Uniform uFlags(*shaderProgram, "iFlags");
-    uFlags.set(0x01);
+    uFlags.set(flags);
 
-    juce::OpenGLShaderProgram::Uniform uTime(*shaderProgram, "iTime");
-    uTime.set(juce::Time::getCurrentTime().getSeconds());
+    //juce::OpenGLShaderProgram::Uniform uTime(*shaderProgram, "iTime");
+    //uTime.set(juce::Time::getCurrentTime().getSeconds());
 
     openGLContext.extensions.glBindBuffer(juce::gl::GL_ARRAY_BUFFER, vbo);
     openGLContext.extensions.glBindBuffer(juce::gl::GL_ELEMENT_ARRAY_BUFFER, ibo);
@@ -398,8 +472,124 @@ void FractalRendererComponent::renderOpenGL()
 
     openGLContext.extensions.glDisableVertexAttribArray(0);
     openGLContext.extensions.glDisableVertexAttribArray(1);
+
+    if (!hide_orbit) {
+        juce::gl::glLineWidth(1.0f);
+        juce::gl::glColor3f(1.0f, 0.0f, 0.0f);
+        juce::gl::glBegin(juce::gl::GL_LINE_STRIP);
+        int sx, sy;
+        float x = orbit_x;
+        float y = orbit_y;
+        PtToScreen(x, y, sx, sy);
+        juce::gl::glVertex2i(sx, sy);
+        float cx = (hasJulia ? jx : px);
+        float cy = (hasJulia ? jy : py);
+        for (int i = 0; i < 200; ++i) {
+            fractal(x, y, cx, cy);
+            PtToScreen(x, y, sx, sy);
+            juce::gl::glVertex2i(sx, sy);
+            if (x * x + y * y > escape_radius_sq) {
+                break;
+            }
+            else if (i < max_freq / target_fps) {
+                orbit_x = x;
+                orbit_y = y;
+            }
+        }
+        juce::gl::glEnd();
+    }
 }
 
 void FractalRendererComponent::openGLContextClosing()
 {
+}
+
+void FractalRendererComponent::mouseMove(const juce::MouseEvent& event)
+{
+    mousePos = event.getPosition();
+    if (leftPressed) {
+        ScreenToPt(mousePos.x, mousePos.y, px, py);
+        //synth.SetPoint(px, py);
+        orbit_x = px;
+        orbit_y = py;
+    }
+    if (dragging) {
+        juce::Point<float> curDrag(mousePos.x, mousePos.y);
+        cam_x_dest += (curDrag.x - prevDrag.x) / cam_zoom;
+        cam_y_dest += (curDrag.y - prevDrag.y) / cam_zoom;
+        prevDrag = curDrag;
+        frame = 0;
+    }
+    if (juliaDrag) {
+        ScreenToPt(mousePos.x, mousePos.y, jx, jy);
+        frame = 0;
+    }
+}
+
+void FractalRendererComponent::mouseDown(const juce::MouseEvent& event)
+{
+    if (event.mods.isLeftButtonDown()) {
+        leftPressed = true;
+        hide_orbit = false;
+        ScreenToPt(mousePos.x, mousePos.y, px, py);
+        //synth.SetPoint(px, py);
+        orbit_x = px;
+        orbit_y = py;
+    }
+    else if (event.mods.isMiddleButtonDown()) {
+        prevDrag = juce::Point<float>(mousePos.x, mousePos.y);
+        dragging = true;
+    }
+    else if (event.mods.isRightButtonDown()) {
+        //synth.audio_pause = true;
+        hide_orbit = true;
+    }
+}
+
+void FractalRendererComponent::mouseUp(const juce::MouseEvent& event)
+{
+    if (!event.mods.isLeftButtonDown()) {
+        leftPressed = false;
+    }
+    if (!event.mods.isMiddleButtonDown()) {
+        dragging = false;
+    }
+}
+
+void FractalRendererComponent::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)
+{
+    cam_zoom_dest *= std::pow(1.1f, wheel.deltaY);
+    cam_x_fp = mousePos.x;
+    cam_y_fp = mousePos.y;
+}
+
+bool FractalRendererComponent::keyPressed(const juce::KeyPress& key)
+{
+    if (key.getTextCharacter() == 'r') {
+        cam_x = cam_x_dest = 0.0;
+        cam_y = cam_y_dest = 0.0;
+        cam_zoom = cam_zoom_dest = 100.0;
+        frame = 0;
+    }
+    else if (key.getTextCharacter() == 'j') {
+        if (jx < 1e8) {
+            jx = jy = 1e8;
+        }
+        else {
+            juliaDrag = true;
+            ScreenToPt(mousePos.x, mousePos.y, jx, jy);
+        }
+        hide_orbit = true;
+        frame = 0;
+    }
+    return false;
+}
+
+bool FractalRendererComponent::keyStateChanged(bool isKeyDown)
+{
+    if (!juce::KeyPress::isKeyCurrentlyDown('j')) {
+        juliaDrag = false;
+        frame = 0;
+    }
+    return false;
 }

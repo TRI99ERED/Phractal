@@ -152,11 +152,12 @@ void PhractalAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
             auto& sustain = *apvts.getRawParameterValue("SUSTAIN");
             auto& release = *apvts.getRawParameterValue("RELEASE");
 
-            auto& oscWaveChoice = *apvts.getRawParameterValue("OSC1WAVETYPE");
+            auto& oscWaveChoice = *apvts.getRawParameterValue("OSCWAVETYPE");
 
+            waveType = (int)oscWaveChoice.load();
             voice->update(attack.load(), decay.load(), sustain.load(), release.load());
-            voice->getOscillator1().setWaveType(oscWaveChoice);
-            voice->getOscillator2().setWaveType(0);                                                           // HARDCODED WAVE TYPE CHOICE
+            voice->getOscillator1().setWaveType(0);//                                                                 HARDCODED WAVE TYPE CHOICE
+            voice->getOscillator2().setWaveType(0);//                                                                 HARDCODED WAVE TYPE CHOICE
         }
     }
 
@@ -188,6 +189,11 @@ void PhractalAudioProcessor::setStateInformation (const void* data, int sizeInBy
     // whose contents will have been created by the getStateInformation() call.
 }
 
+int PhractalAudioProcessor::getWaveType() const
+{
+    return waveType;
+}
+
 //==============================================================================
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
@@ -205,7 +211,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout PhractalAudioProcessor::crea
     params.push_back(std::make_unique<juce::AudioParameterFloat>("SUSTAIN", "Sustain", juce::NormalisableRange<float>{0.1f, 1.f}, 1.f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("RELEASE", "Release", juce::NormalisableRange<float>{0.1f, 3.f}, 0.4f));
 
-    params.push_back(std::make_unique<juce::AudioParameterChoice>("OSC1WAVETYPE", "Osc 1 Wave Type", juce::StringArray{ "Sine", "Saw", "Square" }, 0));
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        "OSCWAVETYPE",
+        "Osc Wave Type",
+        juce::StringArray{ "Mandelbrot", "Burning ship", "Feather", "SFX", "Henon", "Duffing", "Ikeda", "Chirikov" },
+        0
+    ));
 
     return { params.begin(), params.end() };
 }

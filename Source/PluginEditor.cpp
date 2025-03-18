@@ -11,7 +11,7 @@
 
 //==============================================================================
 PhractalAudioProcessorEditor::PhractalAudioProcessorEditor (PhractalAudioProcessor& p)
-    : AudioProcessorEditor (&p), audioProcessor (p), osc(audioProcessor.apvts, "OSC1WAVETYPE"), adsr(audioProcessor.apvts)
+    : AudioProcessorEditor (&p), audioProcessor (p), fr(audioProcessor), osc(audioProcessor.apvts, "OSCWAVETYPE"), adsr(audioProcessor.apvts)
 {
     setSize(1280, 720);
 
@@ -34,7 +34,7 @@ void PhractalAudioProcessorEditor::resized()
 {
     auto bounds = getLocalBounds();
 
+    osc.setBounds(bounds.removeFromLeft(280));
     fr.setBounds(bounds.removeFromTop(500));
-    osc.setBounds(bounds.removeFromLeft(100));
     adsr.setBounds(bounds);
 }

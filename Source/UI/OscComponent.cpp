@@ -14,7 +14,7 @@
 //==============================================================================
 OscComponent::OscComponent(juce::AudioProcessorValueTreeState& apvts, juce::String waveSelectorId)
 {
-    juce::StringArray choices { "Sine", "Saw", "Square" };
+    juce::StringArray choices { "Mandelbrot", "Burning ship", "Feather", "SFX", "Henon", "Duffing", "Ikeda", "Chirikov" };
 
     oscWaveSelector.addItemList(choices, 1);
 
@@ -38,5 +38,6 @@ void OscComponent::paint (juce::Graphics& g)
 
 void OscComponent::resized()
 {
-    oscWaveSelector.setBounds(0, 0, 90, 20);
+    auto bounds = getLocalBounds();
+    oscWaveSelector.setBounds(bounds.removeFromTop(30).reduced(5));
 }
