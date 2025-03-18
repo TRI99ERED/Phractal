@@ -13,8 +13,9 @@
 PhractalAudioProcessorEditor::PhractalAudioProcessorEditor (PhractalAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p), osc(audioProcessor.apvts, "OSC1WAVETYPE"), adsr(audioProcessor.apvts)
 {
-    setSize(400, 300);
+    setSize(1280, 720);
 
+    addAndMakeVisible(fr);
     addAndMakeVisible(osc);
     addAndMakeVisible(adsr);
 }
@@ -31,6 +32,9 @@ void PhractalAudioProcessorEditor::paint (juce::Graphics& g)
 
 void PhractalAudioProcessorEditor::resized()
 {
-    osc.setBounds(10, 10, 100, 30);
-    adsr.setBounds(getWidth() / 2, 0, getWidth() / 2, getHeight());
+    auto bounds = getLocalBounds();
+
+    fr.setBounds(bounds.removeFromTop(500));
+    osc.setBounds(bounds.removeFromLeft(100));
+    adsr.setBounds(bounds);
 }
